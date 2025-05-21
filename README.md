@@ -2,6 +2,6 @@
 Mineshaft Exploration and Retrieval ROS
 
 ### Group Members
-Yannik Zwolsman (s5247589), Daniel Poulis (s), Jacob Barany (s), Tiam Lab (s)
+Yannik Zwolsman (s5247589), Daniel Poulis (s), Jacob Barany (s), Tiam Lamb (s)
 
 ### Build Instructions
