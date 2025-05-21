@@ -45,23 +45,23 @@ include_directories(
 )
 
 
-add_executable(frontier_detector src/cpp/frontier_detector.cpp)
-add_executable(plan_executor src/cpp/plan_executor.cpp)
+#add_executable(frontier_detector src/cpp/frontier_detector.cpp)
+#add_executable(plan_executor src/cpp/plan_executor.cpp)
 add_executable(sensor_interface src/cpp/sensor_interface.cpp)
 
-add_dependencies(frontier_detector ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(plan_executor ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+#add_dependencies(frontier_detector ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+#add_dependencies(plan_executor ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(sensor_interface ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 
-target_link_libraries(frontier_detector ${catkin_LIBRARIES})
-target_link_libraries(plan_executor ${catkin_LIBRARIES})
+#target_link_libraries(frontier_detector ${catkin_LIBRARIES})
+#target_link_libraries(plan_executor ${catkin_LIBRARIES})
 target_link_libraries(sensor_interface ${catkin_LIBRARIES})
 
 
 install(TARGETS
-  frontier_detector
-  plan_executor
+  #frontier_detector
+  #plan_executor
   sensor_interface
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
@@ -69,9 +69,9 @@ install(TARGETS
 
 catkin_install_python(PROGRAMS
   src/python/exploration_coordinator.py
-  src/python/llm_planner.py
+  #src/python/llm_planner.py
   src/python/map_processor.py
-  src/python/map_saver_node.py
+  #src/python/map_saver_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
