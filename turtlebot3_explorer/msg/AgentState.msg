@@ -1,0 +1,3 @@
+Header header
+geometry_msgs/Pose robot_pose
+float32 exploration_percentage

@@ -1,0 +1,5 @@
+Header header
+string status
+geometry_msgs/PoseStamped goal
+float32 distance_to_goal
+float32 angle_error

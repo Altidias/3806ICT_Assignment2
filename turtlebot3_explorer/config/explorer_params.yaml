@@ -1,0 +1,14 @@
+map_frame: "map"
+robot_frame: "base_footprint"
+
+sensor_interface:
+
+frontier_detector:
+
+plan_executor:
+
+llm_planner:
+
+exploration_coordinator:
+
+map_saver_node:
