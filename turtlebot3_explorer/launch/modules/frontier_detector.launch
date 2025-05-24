@@ -1,0 +1,16 @@
+<launch>
+    <arg name="map_topic" default="/map"/>
+    <arg name="frontier_topic" default="/frontiers"/>
+    <arg name="frontier_points_topic" default="/frontier_points"/>
+    <arg name="min_frontier_size" default="3"/>
+    <arg name="frontier_cluster_min_dist" default="0.2"/>
+    
+    <node name="frontier_detector" pkg="turtlebot3_explorer" type="frontier_detector" output="screen">
+        <param name="map_topic" value="$(arg map_topic)"/>
+        <param name="frontier_topic" value="$(arg frontier_topic)"/>
+        <param name="frontier_points_topic" value="$(arg frontier_points_topic)"/>
+        <param name="min_frontier_size" value="$(arg min_frontier_size)"/>
+        <param name="frontier_cluster_min_dist" value="$(arg frontier_cluster_min_dist)"/>
+    </node>
+    
+</launch>

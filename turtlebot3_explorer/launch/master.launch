@@ -1,0 +1,51 @@
+<launch>
+    <!-- master launch to individual modules -->
+    
+    <arg name="use_gazebo" default="true"/>
+    <arg name="use_slam" default="true"/>
+    <arg name="use_rviz" default="true"/>
+    <arg name="use_frontier_detector" default="true"/>
+    <arg name="use_map_processor" default="true"/>
+    
+    <arg name="model" default="burger"/>
+    <arg name="world_name" default="$(find turtlebot3_gazebo)/worlds/turtlebot3_house.world"/>
+    <arg name="slam_methods" default="gmapping"/>
+    <arg name="min_frontier_size" default="3"/>
+    <arg name="downsample_factor" default="4"/>
+    
+    <group if="$(arg use_gazebo)">
+        <include file="$(find turtlebot3_explorer)/launch/gazebo.launch">
+            <arg name="model" value="$(arg model)"/>
+            <arg name="world_name" value="$(arg world_name)"/>
+        </include>
+    </group>
+    
+    <group if="$(arg use_slam)">
+        <include file="$(find turtlebot3_explorer)/launch/slam.launch">
+            <arg name="model" value="$(arg model)"/>
+            <arg name="slam_methods" value="$(arg slam_methods)"/>
+        </include>
+    </group>
+    
+    <include file="$(find turtlebot3_explorer)/launch/sensor_interface.launch"/>
+    
+    <group if="$(arg use_frontier_detector)">
+        <include file="$(find turtlebot3_explorer)/launch/frontier_detector.launch">
+            <arg name="min_frontier_size" value="$(arg min_frontier_size)"/>
+        </include>
+    </group>
+    
+    <group if="$(arg use_map_processor)">
+        <include file="$(find turtlebot3_explorer)/launch/map_processor.launch">
+            <arg name="downsample_factor" value="$(arg downsample_factor)"/>
+        </include>
+        
+        <include file="$(find turtlebot3_explorer)/launch/abstract_map_visualizer.launch"/>
+    </group>
+    
+    <group if="$(arg use_rviz)">
+        <include file="$(find turtlebot3_explorer)/launch/rviz.launch"/>
+    </group>
+    
+    
+</launch>
