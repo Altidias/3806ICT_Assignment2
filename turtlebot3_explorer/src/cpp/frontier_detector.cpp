@@ -24,7 +24,7 @@ FrontierDetector::FrontierDetector(ros::NodeHandle& nh, ros::NodeHandle& private
 	// Sub to map_topic_, calling for eahc new map message
 	map_sub_ = nh_.subscribe(map_topic_, 1, &FrontierDetector::mapCallback, this);
 	// Pub for frontier_topic_ to send PoseArray messages
-	frontier_pub_ = nh_.advertise<geometry_msgs::PoseArray>(frontier_topic_, 1);
+	frontier_pub_ = nh_.advertise<geometry_msgs::PoseArray>(frontier_topic_, 10, true);
 	// Pub to send MarkerArray messages for RVis visualization
 	frontier_points_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(frontier_points_topic_, 1);
 
@@ -41,9 +41,9 @@ FrontierDetector::~FrontierDetector() {
 void FrontierDetector::mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& map) {
 	ROS_INFO("Received map message with width: %d, height: %d", map->info.width, map->info.height);
     	map_ = map; 
-    	std::vector<Frontier> frontiers = detectFrontiers();
-    	ROS_INFO("Detected %lu frontiers in mapCallback", frontiers.size());
-    	publishFrontiers(frontiers);
+    	last_frontiers_ = detectFrontiers();
+    	ROS_INFO("Detected %lu frontiers in mapCallback", last_frontiers_.size());
+    	publishFrontiers(last_frontiers_);
 }
 
 
@@ -112,14 +112,11 @@ bool FrontierDetector::isFrontierPoint(const nav_msgs::OccupancyGrid& map, int x
 			// Coordinates of adjacent neighbours
 			int nx = x + j;
 			int ny = y + i;
-			ROS_INFO("NX: %d, NY %d", nx, ny);
 			// Make sure they are within section
 			if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
 				int n_idx = ny * width + nx;
-				ROS_INFO("This run with index: %d", n_idx);
 				// If cell is unexplored
 				if (map.data[n_idx] == -1) {
-					ROS_INFO("DOES THIS EVER RUN\n\n\n\n\n");
 					has_unexplored_adjacent = true;
 					break;
 				}
@@ -136,11 +133,11 @@ bool FrontierDetector::isFrontierPoint(const nav_msgs::OccupancyGrid& map, int x
 	// Checking to make sure frontier is reachable within 3x3 grid
 	int obstacle_count = 0;
 	for (int i = -1; i <= 1; i++) {
-		for (int j = -1; j <- 1; j++) {
+		for (int j = -1; j <= 1; j++) {
 			int nx = x + j;
 			int ny = y + i;
 			if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-				int n_idx = ny * width * nx;
+				int n_idx = ny * width + nx;
 				// If there is an obstacle (idx value of 100 within map)
 				if (map.data[n_idx] == 100) {
 					obstacle_count++;
@@ -211,6 +208,7 @@ void FrontierDetector::clusterFrontiers(const std::vector<std::pair<int, int>>& 
 				(std::abs(ny - y) == 1 && nx == x)) {
 					stack.push_back(j);
 					visited[j] = true;
+					ROS_INFO("Added point (%d, %d) to cluster", nx, ny);
 				}
 			}
 		}
@@ -218,6 +216,7 @@ void FrontierDetector::clusterFrontiers(const std::vector<std::pair<int, int>>& 
 		// The next section processes the clusters we found
 		// It also calculates the centroids
 		// First, check if min_frontier_size_ is met to reduce noise
+		ROS_INFO("Cluster size: %lu", cluster.size());
 		if (static_cast<int>(cluster.size()) >= min_frontier_size_) {
 			double avg_x = 0.0, avg_y = 0.0;
 			
@@ -242,7 +241,10 @@ void FrontierDetector::clusterFrontiers(const std::vector<std::pair<int, int>>& 
 
 			frontier.size = cluster.size();
 			frontiers.push_back(frontier);
-		}
+			ROS_INFO("Clustered frontier at (wx=%f, wy=%f) with size %lu", wx, wy, cluster.size());
+		} else {
+            		ROS_INFO("Cluster discarded: size %lu < min_frontier_size_ %d", cluster.size(), min_frontier_size_);
+        	}
 	}
 	
 	// This section is the visualisation for RVis
@@ -290,6 +292,7 @@ void FrontierDetector::publishFrontiers(const std::vector<Frontier>& frontiers) 
 	
 	// Goes through each Frontier object
 	for (const auto& frontier : frontiers) {
+
 		// Creates a Pose from frontier coords
 		geometry_msgs::Pose pose;
 		pose.position.x = frontier.x;
@@ -299,17 +302,19 @@ void FrontierDetector::publishFrontiers(const std::vector<Frontier>& frontiers) 
 	
 		// Add pose to array 
 		frontier_arr.poses.push_back(pose);
+		ROS_INFO("Adding pose to array: x=%f, y=%f", pose.position.x, pose.position.y);
 	}
 	// Publishes PoseArray to frontier_topic_ (/frontiers)
-	frontier_pub_.publish(frontier_arr);
 
+	frontier_pub_.publish(frontier_arr);
+	ROS_INFO("Publishing is being run---------------------------- with %lu poses", frontier_arr.poses.size());
 }
 
 // Converts grid coordinates to world coords
 void FrontierDetector::mapToWorld(int mx, int my, double& wx, double& wy) {
 	if (!map_) return;
 	wx = map_->info.origin.position.x + (mx + 0.5) * map_->info.resolution;
-	wy - map_->info.origin.position.y + (my + 0.5) * map_->info.resolution;
+	wy = map_->info.origin.position.y + (my + 0.5) * map_->info.resolution;
 }
 
 // Converts world coords to grid coords
@@ -325,6 +330,18 @@ bool FrontierDetector::worldToMap(double wx, double wy, int& mx, int& my) {
 	return true;
 }
 
+// Add a method to periodically republish
+void FrontierDetector::run() {
+    ros::Rate rate(1); // 1 Hz
+    while (ros::ok()) {
+        if (!last_frontiers_.empty()) {
+            publishFrontiers(last_frontiers_);
+        }
+        ros::spinOnce();
+        rate.sleep();
+    }
+}
+
 int main(int argc, char** argv) {
     ros::init(argc, argv, "frontier_detector");
     
@@ -332,12 +349,11 @@ int main(int argc, char** argv) {
     ros::NodeHandle private_nh("~");
     
     FrontierDetector detector(nh, private_nh);
+    detector.run();
     
-    ros::spin();
     
     return 0;
 }
-
 
 
 
