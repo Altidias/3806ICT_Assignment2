@@ -41,17 +41,17 @@ void FrontierDetector::mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& map)
 
 std::vector<Frontier> FrontierDetector::detectFrontiers() {
 	// Check map has data
-	if (!map || map_->data.empty()) {
+	if (!map_ || map_->data.empty()) {
 		return std::vector<Frontier>();
 	}
 
 	// x and y coords for each frontier
-	std::vector<std::par<int, int>> frontier_points;
+	std::vector<std::pair<int, int>> frontier_points;
 	// Reading in map data
-	int width = map_->info.width
+	int width = map_->info.width;
 	int height = map_->info.height;
 	for (int y = 0; y < height; ++y) {
-		for (int x = 0; x < width, ++x) {
+		for (int x = 0; x < width; ++x) {
 			// Checks if that point is a frontier point
 			if (isFrontierPoint(*map_, x, y)) {
 				frontier_points.emplace_back(x,y);
@@ -67,9 +67,67 @@ std::vector<Frontier> FrontierDetector::detectFrontiers() {
 
 }
 
-bool FrontierDetector::isFrontierPoint(const nav_msgs::OccupancyGrid& map, int x, int y) {
-
-    
+bool FrontierDetector::isFrontierPoint(const nav_msgs::OccupancyGrid& map, int x, int y) {	
+	// Get map info
+	int width = map.info.width;
+	int height = map.info.height;
+	// 1D Index for cell
+	int index = y * width + x;
+	
+	// check points are within map limits
+	if (x < 0 || x >= width || y < 0 || y >= height) {
+		return false;
+	}
+	
+	// Not a frontier point if it is occupied
+	if (map.data[index] != 0) {
+	return false;
+	}
+	
+	bool has_unexplored_adjacent = false;
+	// Loops over a 3x3 section
+	for (int i = -1; i <= 1; i++) {
+		for (int j = -1; j <= 1; j++){
+			// Skips the cell itself, only check 4-adjacent cells 
+			// up, down, left, right (ignore diagonals)
+			if (j == 0 && i == 0) continue;
+			if (j != 0 && i != 0) continue;
+			// Coordinates of adjacent neighbours
+			int nx = x + j;
+			int ny = y + i;
+			// Make sure they are within section
+			if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+				int n_idx = ny * width * nx;
+				// If cell is unexplored
+				if (map.data[n_idx] == -1) {
+					has_unexplored_adjacent = true;
+					break;
+				}
+			}
+		}
+		if (has_unexplored_adjacent) break;
+	}
+	// No frontier found
+	if (!has_unexplored_adjacent) {
+		return false;
+	}
+	
+	// Checking to make sure frontier is reachable within 3x3 grid
+	for (int i = -1; i <= 1; i++) {
+		for (int j = -1; j <- 1; j++) {
+			int nx = x + j;
+			int ny = y + i;
+			if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+				int n_idx = ny * width * nx;
+				// If there is an obstacle (idx value of 100 within map)
+				if (map.data[n_idx] == 100) {
+					return false;
+				}
+			}
+		}
+	
+	}
+	return true;	
 }
 
 void FrontierDetector::clusterFrontiers(const std::vector<std::pair<int, int>>& frontier_points, std::vector<Frontier>& frontiers) {
@@ -84,8 +142,17 @@ void FrontierDetector::mapToWorld(int mx, int my, double& wx, double& wy) {
     
 }
 
+// Converts world coords to grid coords
 bool FrontierDetector::worldToMap(double wx, double wy, int& mx, int& my) {
-    
+	if (!map_) return false;
+
+	mx = static_cast<int>((wx - map_->info.origin.position.x) / map_->info.resolution);
+	my = static_cast<int>((wy - map_->info.origin.position.y) / map_->info.resolution);
+	if (mx < 0 || mx >= static_cast<int>(map_->info.width) ||
+		my < 0 || my >= static_cast<int>(map_->info.height)) {
+		return false;
+	}
+	return true;
 }
 
 int main(int argc, char** argv) {
@@ -100,3 +167,5 @@ int main(int argc, char** argv) {
     
     return 0;
 }
+
+
