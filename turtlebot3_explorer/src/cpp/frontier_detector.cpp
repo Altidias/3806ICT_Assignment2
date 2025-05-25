@@ -10,10 +10,16 @@ FrontierDetector::FrontierDetector(ros::NodeHandle& nh, ros::NodeHandle& private
 	// Sets the topic to publish visualisation markers
 	private_nh.param<std::string>("frontier_points_topic", frontier_points_topic_, "/frontier_points");
 	// Loads the minimum cluster (of cells), and sets it to be 5, ignoring smaller frontier regions
-	private_nh.param<int>("min_frontier_size", min_frontier_size_, 5);
+	private_nh.param<int>("min_frontier_size", min_frontier_size_, 1);
 	// Not sure if I will use this since I will use adjacency clustering, this loads the
 	// minimum clustering distance (0.5m)
 	private_nh.param<double>("frontier_cluster_min_dist", frontier_cluster_min_dist_, 0.5);
+	
+
+	// =============== DEBUG ================
+	ROS_INFO("Loaded min_frontier_size: %d", min_frontier_size_);
+	ROS_INFO("Frontier topic set to: %s", frontier_topic_.c_str());
+	// ----------------------------------------
 
 	// Sub to map_topic_, calling for eahc new map message
 	map_sub_ = nh_.subscribe(map_topic_, 1, &FrontierDetector::mapCallback, this);
@@ -21,9 +27,11 @@ FrontierDetector::FrontierDetector(ros::NodeHandle& nh, ros::NodeHandle& private
 	frontier_pub_ = nh_.advertise<geometry_msgs::PoseArray>(frontier_topic_, 1);
 	// Pub to send MarkerArray messages for RVis visualization
 	frontier_points_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(frontier_points_topic_, 1);
-	
+
+
     
 }
+
 
 // Destructor handled by ROS
 FrontierDetector::~FrontierDetector() {
@@ -31,18 +39,20 @@ FrontierDetector::~FrontierDetector() {
 
 // Processor for each new map
 void FrontierDetector::mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& map) {
-    std::lock_guard<std::mutex> lock(map_mutex_);
-    map_ = map;
-    
-    std::vector<Frontier> frontiers = detectFrontiers();
-    publishFrontiers(frontiers);
+	ROS_INFO("Received map message with width: %d, height: %d", map->info.width, map->info.height);
+    	map_ = map; 
+    	std::vector<Frontier> frontiers = detectFrontiers();
+    	ROS_INFO("Detected %lu frontiers in mapCallback", frontiers.size());
+    	publishFrontiers(frontiers);
 }
 
 
 std::vector<Frontier> FrontierDetector::detectFrontiers() {
+	std::vector<Frontier> frontiers; // Local vector to store frontiers
+					
 	// Check map has data
 	if (!map_ || map_->data.empty()) {
-		return std::vector<Frontier>();
+		return frontiers;
 	}
 
 	// x and y coords for each frontier
@@ -50,17 +60,23 @@ std::vector<Frontier> FrontierDetector::detectFrontiers() {
 	// Reading in map data
 	int width = map_->info.width;
 	int height = map_->info.height;
+
+	std::lock_guard<std::mutex> lock(map_mutex_);
+
 	for (int y = 0; y < height; ++y) {
 		for (int x = 0; x < width; ++x) {
+			int idx = y * width + x;
+			if (map_->data[idx] != 0) continue; // Skip non-free cells
 			// Checks if that point is a frontier point
 			if (isFrontierPoint(*map_, x, y)) {
+				ROS_INFO("Detected frontier point at (%d, %d)", x, y);
 				frontier_points.emplace_back(x,y);
 			}
 		}
 	}
 	
 	// Passes the frontier points to cluserFronteirs to group them into clusters
-	std::vector<Frontier> frontiers;
+	ROS_INFO("Total frontier points detected: %lu", frontier_points.size());
 	clusterFrontiers(frontier_points, frontiers);
 	// Returns for publishing
 	return frontiers;
@@ -78,10 +94,11 @@ bool FrontierDetector::isFrontierPoint(const nav_msgs::OccupancyGrid& map, int x
 	if (x < 0 || x >= width || y < 0 || y >= height) {
 		return false;
 	}
-	
+
 	// Not a frontier point if it is occupied
 	if (map.data[index] != 0) {
-	return false;
+		ROS_INFO("Point (%d, %d) not free: value = %d", x, y, map.data[index]);
+		return false;
 	}
 	
 	bool has_unexplored_adjacent = false;
@@ -95,11 +112,14 @@ bool FrontierDetector::isFrontierPoint(const nav_msgs::OccupancyGrid& map, int x
 			// Coordinates of adjacent neighbours
 			int nx = x + j;
 			int ny = y + i;
+			ROS_INFO("NX: %d, NY %d", nx, ny);
 			// Make sure they are within section
 			if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-				int n_idx = ny * width * nx;
+				int n_idx = ny * width + nx;
+				ROS_INFO("This run with index: %d", n_idx);
 				// If cell is unexplored
 				if (map.data[n_idx] == -1) {
+					ROS_INFO("DOES THIS EVER RUN\n\n\n\n\n");
 					has_unexplored_adjacent = true;
 					break;
 				}
@@ -109,10 +129,12 @@ bool FrontierDetector::isFrontierPoint(const nav_msgs::OccupancyGrid& map, int x
 	}
 	// No frontier found
 	if (!has_unexplored_adjacent) {
+		ROS_INFO("Point (%d, %d) has no unknown neighbors", x, y);
 		return false;
 	}
 	
 	// Checking to make sure frontier is reachable within 3x3 grid
+	int obstacle_count = 0;
 	for (int i = -1; i <= 1; i++) {
 		for (int j = -1; j <- 1; j++) {
 			int nx = x + j;
@@ -121,12 +143,19 @@ bool FrontierDetector::isFrontierPoint(const nav_msgs::OccupancyGrid& map, int x
 				int n_idx = ny * width * nx;
 				// If there is an obstacle (idx value of 100 within map)
 				if (map.data[n_idx] == 100) {
-					return false;
+					obstacle_count++;
 				}
 			}
 		}
 	
 	}
+	// Allow for 4 obstacles
+	if (obstacle_count > 4) {
+        ROS_INFO("Point (%d, %d) has too many obstacles nearby: %d", x, y, obstacle_count);
+        return false;
+    	}
+
+	ROS_INFO("Point (%d, %d) is a frontier", x, y);
 	return true;	
 }
 
