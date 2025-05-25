@@ -130,16 +130,157 @@ bool FrontierDetector::isFrontierPoint(const nav_msgs::OccupancyGrid& map, int x
 	return true;	
 }
 
+// Flood-fill algorithm
 void FrontierDetector::clusterFrontiers(const std::vector<std::pair<int, int>>& frontier_points, std::vector<Frontier>& frontiers) {
-    
+	// Vector for visited points
+	std::vector<bool> visited(frontier_points.size(), false);
+	// Map info
+	int width = map_->info.width;
+	int height = map_->info.height;
+	
+	// This will detect cluster using the flood-fill algorithm
+	// Goes over frontier points, skipping the already visited one
+	for (size_t i = 0; i < frontier_points.size(); ++i) {
+		if (visited[i]) continue;
+		
+		// Stores the clusters	
+		std::vector<std::pair<int, int>> cluster;
+		// Stack to manage the flood-fill process
+		std::vector<size_t> stack;
+		
+		// Start point is marked as visited
+		stack.push_back(i);
+		visited[i] = true;
+	
+		// As long as there are points to explore in the current cluster 
+		// DFS to connect adjacent frontier points
+		while (!stack.empty()) {
+			// Takes stack last index and adds coords to cluster
+			// This builds the cluster one point at a time
+			size_t current = stack.back();
+			stack.pop_back();
+			cluster.push_back(frontier_points[current]);
+			
+			// Store  and y grid coords of current point for future comparison
+			int x = frontier_points[current].first;
+			int y = frontier_points[current].second;
+			
+			// Loops over all frontier points
+			// Looks for unvisited neighbours of current point
+			for (size_t j = 0; j < frontier_points.size(); ++j) {
+				// Skip if visited
+				if (visited[j]) continue;
+				
+				// Coords of neighbour
+				int nx = frontier_points[j].first;
+				int ny = frontier_points[j].second;
+					
+				// Check if neighbour is xy adjacent (not diagonal)
+				// If it is, neighbours index is add to stack 
+				// Marked as visited
+				if ((std::abs(nx - x) == 1 && ny == y) || 
+				(std::abs(ny - y) == 1 && nx == x)) {
+					stack.push_back(j);
+					visited[j] = true;
+				}
+			}
+		}
+
+		// The next section processes the clusters we found
+		// It also calculates the centroids
+		// First, check if min_frontier_size_ is met to reduce noise
+		if (static_cast<int>(cluster.size()) >= min_frontier_size_) {
+			double avg_x = 0.0, avg_y = 0.0;
+			
+			// Calc the points average position within each cluster
+			for (const auto& point : cluster) {
+				avg_x += point.first;
+				avg_y += point.second;
+			}	
+			avg_x /= cluster.size();
+			avg_y /= cluster.size();
+			
+
+			double wx, wy;
+			// Convert the centroid's grid coords to world coords
+			mapToWorld(static_cast<int>(avg_x), static_cast<int>(avg_y), wx, wy);
+
+			// Adds that frontier to the vector
+			Frontier frontier;
+
+			frontier.x = wx;
+			frontier.y = wy;
+
+			frontier.size = cluster.size();
+			frontiers.push_back(frontier);
+		}
+	}
+	
+	// This section is the visualisation for RVis
+	visualization_msgs::MarkerArray marker_array;
+	visualization_msgs::Marker marker;
+	marker.header.frame_id = "map";
+	marker.header.stamp = ros::Time::now();
+	marker.ns = "frontier_points";
+	marker.id = 0;
+	marker.type = visualization_msgs::Marker::POINTS;
+	marker.action = visualization_msgs::Marker::ADD;
+	marker.scale.x = 0.1;
+	marker.scale.y = 0.1;
+	marker.color.r = 1.0;
+	marker.color.g = 0.0;
+	marker.color.b = 0.0;
+	marker.color.a = 1.0;
+	marker.lifetime = ros::Duration(2.0);
+	
+	// Convert frontier_points to world coords
+	for (const auto& point : frontier_points) {
+		double wx, wy;
+
+		mapToWorld(point.first, point.second, wx, wy);
+		geometry_msgs::Point p;
+		p.x = wx;
+		p.y = wy;
+		p.z = 0.0;
+		marker.points.push_back(p);
+	}
+
+	// Publish marker array and publish to /frontier_points_topic_ (/front_points)
+	// RVis will display things as red dots
+	marker_array.markers.push_back(marker);
+	frontier_points_pub_.publish(marker_array);
 }
 
+// Publishing frontier clusters to PoseArray for nav
 void FrontierDetector::publishFrontiers(const std::vector<Frontier>& frontiers) {
-    
+	// Holds frontier centroids
+	geometry_msgs::PoseArray frontier_arr; 
+	// Attacked timestamp to map
+	frontier_arr.header.stamp = ros::Time::now();
+	frontier_arr.header.frame_id = "map";
+	
+	// Goes through each Frontier object
+	for (const auto& frontier : frontiers) {
+		// Creates a Pose from frontier coords
+		geometry_msgs::Pose pose;
+		pose.position.x = frontier.x;
+		pose.position.y = frontier.y;
+		pose.position.z = 0.0;
+		pose.orientation.w = 1.0;
+	
+		// Add pose to array 
+		frontier_arr.poses.push_back(pose);
+	}
+	// Publishes PoseArray to frontier_topic_ (/frontiers)
+	frontier_pub_.publish(frontier_arr);
+
 }
 
+// Converts grid coordinates to world coords
 void FrontierDetector::mapToWorld(int mx, int my, double& wx, double& wy) {
-    
+	if (!map_) return;
+	wx = map_->info.origin.position.x + (mx + 0.5) * map_->info.resolution;
+	wy - map_->info.origin.position.y + (my + 0.5) * map_->info.resolution;
 }
 
 // Converts world coords to grid coords
@@ -167,5 +308,7 @@ int main(int argc, char** argv) {
     
     return 0;
 }
+
+
 
 
