@@ -1,51 +1,170 @@
 <launch>
-    <!-- master launch to individual modules -->
+    <!-- Simplified Multi-robot exploration system -->
     
-    <arg name="use_gazebo" default="true"/>
-    <arg name="use_slam" default="true"/>
-    <arg name="use_rviz" default="true"/>
-    <arg name="use_frontier_detector" default="true"/>
-    <arg name="use_map_processor" default="true"/>
-    
-    <arg name="model" default="burger"/>
+    <!-- Configuration -->
     <arg name="world_name" default="$(find turtlebot3_gazebo)/worlds/turtlebot3_house.world"/>
-    <arg name="slam_methods" default="gmapping"/>
-    <arg name="min_frontier_size" default="3"/>
-    <arg name="downsample_factor" default="4"/>
+    <arg name="model" default="burger"/>
     
-    <group if="$(arg use_gazebo)">
-        <include file="$(find turtlebot3_explorer)/launch/gazebo.launch">
-            <arg name="model" value="$(arg model)"/>
-            <arg name="world_name" value="$(arg world_name)"/>
-        </include>
-    </group>
+    <!-- Launch Gazebo -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="world_name" value="$(arg world_name)"/>
+        <arg name="paused" value="false"/>
+        <arg name="use_sim_time" value="true"/>
+        <arg name="gui" value="true"/>
+        <arg name="headless" value="false"/>
+        <arg name="debug" value="false"/>
+    </include>
     
-    <group if="$(arg use_slam)">
-        <include file="$(find turtlebot3_explorer)/launch/slam.launch">
-            <arg name="model" value="$(arg model)"/>
-            <arg name="slam_methods" value="$(arg slam_methods)"/>
-        </include>
-    </group>
-    
-    <include file="$(find turtlebot3_explorer)/launch/sensor_interface.launch"/>
-    
-    <group if="$(arg use_frontier_detector)">
-        <include file="$(find turtlebot3_explorer)/launch/frontier_detector.launch">
-            <arg name="min_frontier_size" value="$(arg min_frontier_size)"/>
-        </include>
-    </group>
-    
-    <group if="$(arg use_map_processor)">
-        <include file="$(find turtlebot3_explorer)/launch/map_processor.launch">
-            <arg name="downsample_factor" value="$(arg downsample_factor)"/>
-        </include>
+    <!-- Robot 1 -->
+    <group ns="robot1">
+        <param name="tf_prefix" value="robot1"/>
         
-        <include file="$(find turtlebot3_explorer)/launch/abstract_map_visualizer.launch"/>
+        <!-- Robot Description with proper namespace -->
+        <param name="robot_description" 
+               command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+        
+        <!-- Spawn Robot -->
+        <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" 
+              args="-urdf -model turtlebot3_robot1 -x -2.0 -y 0.0 -z 0.0 -param robot_description" />
+        
+        <!-- Robot State Publisher -->
+        <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+            <param name="publish_frequency" value="50.0"/>
+            <param name="tf_prefix" value="robot1"/>
+        </node>
+        
+        <!-- Additional static transforms for missing links -->
+        <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_laser" 
+              args="0 0 0 0 0 0 robot1/base_link robot1/base_scan" />
+        <node pkg="tf2_ros" type="static_transform_publisher" name="footprint_to_base" 
+              args="0 0 0.010 0 0 0 robot1/base_footprint robot1/base_link" />
+        
+        <!-- SLAM -->
+        <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+            <remap from="scan" to="scan"/>
+            <remap from="map" to="map"/>
+            <param name="base_frame" value="robot1/base_footprint"/>
+            <param name="odom_frame" value="robot1/odom"/>
+            <param name="map_frame" value="robot1/map"/>
+            <param name="map_update_interval" value="1.0"/>
+            <param name="maxUrange" value="3.0"/>
+            <param name="maxRange" value="3.5"/>
+            <param name="sigma" value="0.05"/>
+            <param name="kernelSize" value="1"/>
+            <param name="lstep" value="0.05"/>
+            <param name="astep" value="0.05"/>
+            <param name="iterations" value="5"/>
+            <param name="lsigma" value="0.075"/>
+            <param name="ogain" value="3.0"/>
+            <param name="minimumScore" value="50"/>
+            <param name="linearUpdate" value="0.1"/>
+            <param name="angularUpdate" value="0.1"/>
+            <param name="temporalUpdate" value="1.0"/>
+            <param name="particles" value="30"/>
+            <param name="xmin" value="-10.0"/>
+            <param name="ymin" value="-10.0"/>
+            <param name="xmax" value="10.0"/>
+            <param name="ymax" value="10.0"/>
+            <param name="delta" value="0.05"/>
+            <param name="transform_publish_period" value="0.05"/>
+        </node>
     </group>
     
-    <group if="$(arg use_rviz)">
-        <include file="$(find turtlebot3_explorer)/launch/rviz.launch"/>
+    <!-- Robot 2 -->
+    <group ns="robot2">
+        <param name="tf_prefix" value="robot2"/>
+        
+        <!-- Robot Description with proper namespace -->
+        <param name="robot_description" 
+               command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+        
+        <!-- Spawn Robot -->
+        <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" 
+              args="-urdf -model turtlebot3_robot2 -x -2.0 -y 1.0 -z 0.0 -param robot_description" />
+        
+        <!-- Robot State Publisher -->
+        <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+            <param name="publish_frequency" value="50.0"/>
+            <param name="tf_prefix" value="robot2"/>
+        </node>
+        
+        <!-- Additional static transforms for missing links -->
+        <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_laser" 
+              args="0 0 0 0 0 0 robot2/base_link robot2/base_scan" />
+        <node pkg="tf2_ros" type="static_transform_publisher" name="footprint_to_base" 
+              args="0 0 0.010 0 0 0 robot2/base_footprint robot2/base_link" />
+        
+        <!-- SLAM -->
+        <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+            <remap from="scan" to="scan"/>
+            <remap from="map" to="map"/>
+            <param name="base_frame" value="robot2/base_footprint"/>
+            <param name="odom_frame" value="robot2/odom"/>
+            <param name="map_frame" value="robot2/map"/>
+            <param name="map_update_interval" value="1.0"/>
+            <param name="maxUrange" value="3.0"/>
+            <param name="maxRange" value="3.5"/>
+            <param name="sigma" value="0.05"/>
+            <param name="kernelSize" value="1"/>
+            <param name="lstep" value="0.05"/>
+            <param name="astep" value="0.05"/>
+            <param name="iterations" value="5"/>
+            <param name="lsigma" value="0.075"/>
+            <param name="ogain" value="3.0"/>
+            <param name="minimumScore" value="50"/>
+            <param name="linearUpdate" value="0.1"/>
+            <param name="angularUpdate" value="0.1"/>
+            <param name="temporalUpdate" value="1.0"/>
+            <param name="particles" value="30"/>
+            <param name="xmin" value="-10.0"/>
+            <param name="ymin" value="-10.0"/>
+            <param name="xmax" value="10.0"/>
+            <param name="ymax" value="10.0"/>
+            <param name="delta" value="0.05"/>
+            <param name="transform_publish_period" value="0.05"/>
+        </node>
     </group>
     
+    <!-- Global map frame transforms -->
+    <node pkg="tf" type="static_transform_publisher" name="map_to_robot1_map" 
+          args="-2.0 0.0 0.0 0 0 0 map robot1/map 100" />
+    <node pkg="tf" type="static_transform_publisher" name="map_to_robot2_map" 
+          args="-2.0 1.0 0.0 0 0 0 map robot2/map 100" />
+    
+    <!-- Map Merger -->
+    <node name="map_merger" pkg="turtlebot3_explorer" type="map_merger.py" output="screen" 
+          launch-prefix="bash -c 'sleep 10; $0 $@' ">
+        <rosparam param="robot_namespaces">[robot1, robot2]</rosparam>
+        <param name="merged_map_topic" value="/map"/>
+        <param name="world_frame" value="map"/>
+        <param name="merge_rate" value="2.0"/>
+    </node>
+    
+    <!-- Frontier Detection -->
+    <node name="frontier_detector" pkg="turtlebot3_explorer" type="frontier_detector" output="screen">
+        <param name="map_topic" value="/map"/>
+        <param name="frontier_topic" value="/frontiers"/>
+        <param name="frontier_points_topic" value="/frontier_points"/>
+        <param name="min_frontier_size" value="10"/>
+    </node>
+    
+    <!-- Multi-Robot Controller -->
+    <node name="multi_robot_controller" pkg="turtlebot3_explorer" type="multi_robot_controller.py" output="screen">
+        <rosparam param="robot_namespaces">[robot1, robot2]</rosparam>
+        <param name="rescuer_namespace" value=""/>
+        <param name="teleport_step_size" value="0.5"/>
+        <param name="goal_tolerance" value="0.3"/>
+    </node>
+    
+    <!-- RViz -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find turtlebot3_explorer)/rviz/multi_robot_exploration.rviz"/>
+    
+    <!-- Automatic initialization -->
+    <node name="slam_initializer" pkg="turtlebot3_explorer" type="initialize_slam.py" 
+          output="screen" launch-prefix="bash -c 'sleep 15; $0 $@' "/>
+    
+    <!-- Start in exploration mode -->
+    <node name="exploration_mode_setter" pkg="rostopic" type="rostopic" 
+          args="pub -l /control_mode std_msgs/String 'explore'" />
     
 </launch>
