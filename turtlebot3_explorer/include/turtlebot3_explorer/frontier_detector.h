@@ -18,6 +18,7 @@ struct Frontier {
 class FrontierDetector {
 public:
     FrontierDetector(ros::NodeHandle& nh, ros::NodeHandle& private_nh);
+	void run();
     ~FrontierDetector();
 
 private:
@@ -25,12 +26,14 @@ private:
     ros::Subscriber map_sub_;
     ros::Publisher frontier_pub_;
     ros::Publisher frontier_points_pub_;
+    ros::Timer timer_;
     
     std::string map_topic_;
     std::string frontier_topic_;
     std::string frontier_points_topic_;
     int min_frontier_size_;
     double frontier_cluster_min_dist_;
+    std::vector<Frontier> last_frontiers_;
     
     // map data
     nav_msgs::OccupancyGrid::ConstPtr map_;
@@ -45,6 +48,7 @@ private:
     
     void mapToWorld(int mx, int my, double& wx, double& wy);
     bool worldToMap(double wx, double wy, int& mx, int& my);
+    void timerCallback(const ros::TimerEvent& event);
 };
 
 #endif // FRONTIER_DETECTOR_H
