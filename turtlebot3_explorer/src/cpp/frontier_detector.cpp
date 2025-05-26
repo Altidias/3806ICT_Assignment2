@@ -332,17 +332,6 @@ bool FrontierDetector::worldToMap(double wx, double wy, int& mx, int& my) {
             my >= 0 && my < static_cast<int>(map_->info.height));
 }
 
-// Add a method to periodically republish
-void FrontierDetector::run() {
-    ros::Rate rate(1); // 1 Hz
-    while (ros::ok()) {
-        if (!last_frontiers_.empty()) {
-            publishFrontiers(last_frontiers_);
-        }
-        ros::spinOnce();
-        rate.sleep();
-    }
-}
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "frontier_detector");
@@ -351,7 +340,7 @@ int main(int argc, char** argv) {
     ros::NodeHandle private_nh("~");
     
     FrontierDetector detector(nh, private_nh);
-    detector.run();
+    ros::spin();
     
     
     return 0;
