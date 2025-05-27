@@ -1,6 +1,4 @@
 <launch>
-    <!-- Simplified Multi-robot exploration system -->
-    
     <!-- Configuration -->
     <arg name="world_name" default="$(find turtlebot3_gazebo)/worlds/turtlebot3_house.world"/>
     <arg name="model" default="burger"/>
@@ -17,9 +15,7 @@
     
     <!-- Robot 1 -->
     <group ns="robot1">
-        <param name="tf_prefix" value="robot1"/>
-        
-        <!-- Robot Description with proper namespace -->
+        <!-- Load robot description with namespace prefix -->
         <param name="robot_description" 
                command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
         
@@ -30,14 +26,23 @@
         <!-- Robot State Publisher -->
         <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
             <param name="publish_frequency" value="50.0"/>
-            <param name="tf_prefix" value="robot1"/>
+            <remap from="/tf" to="tf"/>
+            <remap from="/tf_static" to="tf_static"/>
         </node>
         
-        <!-- Additional static transforms for missing links -->
-        <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_laser" 
-              args="0 0 0 0 0 0 robot1/base_link robot1/base_scan" />
-        <node pkg="tf2_ros" type="static_transform_publisher" name="footprint_to_base" 
+        <!-- Manual namespace transforms-->
+        <node pkg="tf2_ros" type="static_transform_publisher" name="base_footprint_to_base_link" 
               args="0 0 0.010 0 0 0 robot1/base_footprint robot1/base_link" />
+        <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_wheel_left" 
+              args="0 0.08 0 0 0 0 robot1/base_link robot1/wheel_left_link" />
+        <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_wheel_right" 
+              args="0 -0.08 0 0 0 0 robot1/base_link robot1/wheel_right_link" />
+        <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_caster" 
+              args="-0.064 0 -0.007 0 0 0 robot1/base_link robot1/caster_back_link" />
+        <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu" 
+              args="-0.032 0 0.068 0 0 0 robot1/base_link robot1/imu_link" />
+        <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_scan" 
+              args="-0.064 0 0.122 0 0 0 robot1/base_link robot1/base_scan" />
         
         <!-- SLAM -->
         <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
@@ -59,7 +64,7 @@
             <param name="minimumScore" value="50"/>
             <param name="linearUpdate" value="0.1"/>
             <param name="angularUpdate" value="0.1"/>
-            <param name="temporalUpdate" value="1.0"/>
+            <param name="temporalUpdate" value="-1.0"/>
             <param name="particles" value="30"/>
             <param name="xmin" value="-10.0"/>
             <param name="ymin" value="-10.0"/>
@@ -72,9 +77,7 @@
     
     <!-- Robot 2 -->
     <group ns="robot2">
-        <param name="tf_prefix" value="robot2"/>
-        
-        <!-- Robot Description with proper namespace -->
+        <!-- Load robot description -->
         <param name="robot_description" 
                command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
         
@@ -85,14 +88,23 @@
         <!-- Robot State Publisher -->
         <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
             <param name="publish_frequency" value="50.0"/>
-            <param name="tf_prefix" value="robot2"/>
+            <remap from="/tf" to="tf"/>
+            <remap from="/tf_static" to="tf_static"/>
         </node>
         
-        <!-- Additional static transforms for missing links -->
-        <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_laser" 
-              args="0 0 0 0 0 0 robot2/base_link robot2/base_scan" />
-        <node pkg="tf2_ros" type="static_transform_publisher" name="footprint_to_base" 
+        <!-- Manual namespace transforms -->
+        <node pkg="tf2_ros" type="static_transform_publisher" name="base_footprint_to_base_link" 
               args="0 0 0.010 0 0 0 robot2/base_footprint robot2/base_link" />
+        <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_wheel_left" 
+              args="0 0.08 0 0 0 0 robot2/base_link robot2/wheel_left_link" />
+        <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_wheel_right" 
+              args="0 -0.08 0 0 0 0 robot2/base_link robot2/wheel_right_link" />
+        <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_caster" 
+              args="-0.064 0 -0.007 0 0 0 robot2/base_link robot2/caster_back_link" />
+        <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu" 
+              args="-0.032 0 0.068 0 0 0 robot2/base_link robot2/imu_link" />
+        <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_scan" 
+              args="-0.064 0 0.122 0 0 0 robot2/base_link robot2/base_scan" />
         
         <!-- SLAM -->
         <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
@@ -114,7 +126,7 @@
             <param name="minimumScore" value="50"/>
             <param name="linearUpdate" value="0.1"/>
             <param name="angularUpdate" value="0.1"/>
-            <param name="temporalUpdate" value="1.0"/>
+            <param name="temporalUpdate" value="-1.0"/>
             <param name="particles" value="30"/>
             <param name="xmin" value="-10.0"/>
             <param name="ymin" value="-10.0"/>
@@ -125,11 +137,11 @@
         </node>
     </group>
     
-    <!-- Global map frame transforms -->
-    <node pkg="tf" type="static_transform_publisher" name="map_to_robot1_map" 
-          args="-2.0 0.0 0.0 0 0 0 map robot1/map 100" />
-    <node pkg="tf" type="static_transform_publisher" name="map_to_robot2_map" 
-          args="-2.0 1.0 0.0 0 0 0 map robot2/map 100" />
+    <!-- Global map frame setup-->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="map_to_robot1_map" 
+          args="0.0 0.0 0.0 0 0 0 map robot1/map" />
+    <node pkg="tf2_ros" type="static_transform_publisher" name="map_to_robot2_map" 
+          args="0.0 0.0 0.0 0 0 0 map robot2/map" />
     
     <!-- Map Merger -->
     <node name="map_merger" pkg="turtlebot3_explorer" type="map_merger.py" output="screen" 
@@ -157,7 +169,7 @@
     </node>
     
     <!-- RViz -->
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find turtlebot3_explorer)/rviz/multi_robot_exploration.rviz"/>
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find turtlebot3_explorer)/rviz/config.rviz"/>
     
     <!-- Automatic initialization -->
     <node name="slam_initializer" pkg="turtlebot3_explorer" type="initialize_slam.py" 
