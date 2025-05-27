@@ -7,10 +7,12 @@ from gazebo_msgs.srv import SetModelState, GetModelState
 from gazebo_msgs.msg import ModelState
 from turtlebot3_explorer.msg import ExplorationPlan, ExecutionStatus, AgentState
 from std_msgs.msg import String, Bool
+from sensor_msgs.msg import LaserScan
 import json
 import threading
 from enum import Enum
 import math
+import time
 
 class RobotState(Enum):
     IDLE = "idle"
@@ -18,11 +20,12 @@ class RobotState(Enum):
     MOVING_TO_FRONTIER = "moving_to_frontier"
     RESCUING = "rescuing"
     RETURNING = "returning"
+    TELEPORTING = "teleporting"  # for teleportation
 
 class RobotInfo:
     def __init__(self, robot_id, robot_type="explorer"):
         self.id = robot_id
-        self.type = robot_type  # "explorer" or "rescuer"
+        self.type = robot_type  # explorer or rescuer
         self.state = RobotState.IDLE
         self.current_pose = None
         self.target_pose = None
@@ -30,6 +33,8 @@ class RobotInfo:
         self.exploration_history = []
         self.path_waypoints = []
         self.current_waypoint_idx = 0
+        self.last_teleport_time = 0
+        self.teleport_cooldown = 0.5  # seconds between teleports
         
 class MultiRobotController:
     def __init__(self):
@@ -38,21 +43,24 @@ class MultiRobotController:
         # robot management
         self.robots = {}
         self.robot_namespaces = rospy.get_param('~robot_namespaces', ['robot1', 'robot2'])
-        self.rescuer_namespace = rospy.get_param('~rescuer_namespace', None)  # rescuer
+        self.rescuer_namespace = rospy.get_param('~rescuer_namespace', None)
         
         for ns in self.robot_namespaces:
             self.robots[ns] = RobotInfo(ns, "explorer")
             
-        # add rescuer if specified
         if self.rescuer_namespace:
             self.robots[self.rescuer_namespace] = RobotInfo(self.rescuer_namespace, "rescuer")
         
         self.exploration_mode = True
         self.rescue_target = None
-        self.teleport_step_size = rospy.get_param('~teleport_step_size', 0.5)
-        self.goal_tolerance = rospy.get_param('~goal_tolerance', 0.3)
         
-        # RL parameters (placeholder for actual RL implementation)
+        # teleportation params
+        self.teleport_step_size = rospy.get_param('~teleport_step_size', 0.1)  # smaller steps
+        self.goal_tolerance = rospy.get_param('~goal_tolerance', 0.3)
+        self.teleport_delay = rospy.get_param('~teleport_delay', 0.5)
+        self.scan_pause_duration = rospy.get_param('~scan_pause_duration', 0.3)
+        
+        # rl params
         self.exploration_reward_discount = 0.9
         self.frontier_assignment_weights = {
             'distance': -0.4,
@@ -69,9 +77,15 @@ class MultiRobotController:
         # publishers
         self.plan_pub = rospy.Publisher('/exploration_plan', ExplorationPlan, queue_size=1)
         self.status_pubs = {}
+        self.scan_pause_pubs = {}
+        
         for robot_id in self.robots:
             self.status_pubs[robot_id] = rospy.Publisher(
                 f'/{robot_id}/execution_status', ExecutionStatus, queue_size=1
+            )
+            # pause laser scan processing
+            self.scan_pause_pubs[robot_id] = rospy.Publisher(
+                f'/{robot_id}/pause_scan_processing', Bool, queue_size=1
             )
         
         # subscribers
@@ -79,14 +93,25 @@ class MultiRobotController:
         self.mode_sub = rospy.Subscriber('/control_mode', String, self.mode_callback)
         self.rescue_target_sub = rospy.Subscriber('/rescue_target', PoseStamped, self.rescue_target_callback)
         
+        # scan monitoring
+        self.last_scan_times = {}
+        for robot_id in self.robots:
+            rospy.Subscriber(f'/{robot_id}/scan', LaserScan, 
+                           lambda msg, rid=robot_id: self.scan_callback(msg, rid))
+        
         self.current_frontiers = []
         self.lock = threading.Lock()
         
         # control loop
-        self.control_rate = rospy.Rate(2)  # 2 Hz
-        self.control_timer = rospy.Timer(rospy.Duration(0.5), self.control_loop)
+        self.control_rate = rospy.Rate(10)  # higher rate for smoother movement
+        self.control_timer = rospy.Timer(rospy.Duration(0.1), self.control_loop)
         
-        rospy.loginfo("Multi-Robot Controller initialized with robot: %s", list(self.robots.keys()))
+        rospy.loginfo("Multi-Robot Controller initialized with robots: %s", list(self.robots.keys()))
+        rospy.loginfo("Teleport step size: %.2f, delay: %.2f", self.teleport_step_size, self.teleport_delay)
+        
+    def scan_callback(self, msg, robot_id):
+        # monitor scan timing
+        self.last_scan_times[robot_id] = rospy.Time.now()
         
     def frontiers_callback(self, msg):
         with self.lock:
@@ -106,12 +131,12 @@ class MultiRobotController:
         rospy.loginfo("Received rescue target: %s", self.rescue_target)
         
     def get_robot_pose(self, robot_id):
-        """current pose of robot from Gazebo"""
+        # get pose from gazebo
         try:
             if robot_id.startswith('robot'):
                 model_name = f"turtlebot3_{robot_id}"
             else:
-                model_name = robot_id  # rescuer uses just 'rescuer'
+                model_name = robot_id
             
             state = self.get_model_state(model_name, "world")
             if state.success:
@@ -120,8 +145,27 @@ class MultiRobotController:
             rospy.logwarn("Failed to get robot pose for %s: %s", robot_id, e)
         return None
         
-    def teleport_robot(self, robot_id, target_x, target_y, target_yaw=0):
-        """tp robot to target position"""
+    def pause_scan_processing(self, robot_id, pause):
+        # pause/resume scan processing
+        msg = Bool()
+        msg.data = pause
+        self.scan_pause_pubs[robot_id].publish(msg)
+        
+    def smooth_teleport_robot(self, robot_id, target_x, target_y, target_yaw=0):
+        # teleport with scan pause
+        # check cooldown
+        robot_info = self.robots[robot_id]
+        current_time = time.time()
+        if current_time - robot_info.last_teleport_time < robot_info.teleport_cooldown:
+            return False
+            
+        # pause scans
+        self.pause_scan_processing(robot_id, True)
+        
+        # wait for pending scans
+        rospy.sleep(0.1)
+        
+        # do teleport
         model_state = ModelState()
         if robot_id.startswith('robot'):
             model_state.model_name = f"turtlebot3_{robot_id}"
@@ -138,27 +182,32 @@ class MultiRobotController:
         
         try:
             self.set_model_state(model_state)
-            rospy.loginfo("Teleported %s to (%.2f, %.2f)", robot_id, target_x, target_y)
+            robot_info.last_teleport_time = current_time
+            
+            # wait to stabilize
+            rospy.sleep(self.scan_pause_duration)
+            
+            # resume scans
+            self.pause_scan_processing(robot_id, False)
+            
+            rospy.logdebug("Smoothly teleported %s to (%.2f, %.2f)", robot_id, target_x, target_y)
             return True
+            
         except rospy.ServiceException as e:
             rospy.logwarn("Failed to teleport robot %s: %s", robot_id, e)
+            self.pause_scan_processing(robot_id, False)  # resume on error
             return False
-            
+        
     def calculate_frontier_utility(self, robot_pose, frontier, robot_info):
-        """
-        calculate utility score for assigning a frontier to a robot
-        placeholder for RL based decision making
-        """
+        # utility score for frontier assignment
         # distance cost
         distance = math.sqrt(
             (frontier[0] - robot_pose.position.x)**2 + 
             (frontier[1] - robot_pose.position.y)**2
         )
         
-        # frontier val (placeholder - in real implementation, get from abstract map)
-        frontier_size = 1.0  # would get actual size from frontier detector
-        
-        # unexplored ratio nearby (placeholder)
+        # frontier value
+        frontier_size = 1.0
         unexplored_ratio = 0.5
         
         # calculate utility
@@ -168,24 +217,20 @@ class MultiRobotController:
             self.frontier_assignment_weights['unexplored_ratio'] * unexplored_ratio
         )
         
-        # penalty if frontier was recently visited by this robot
+        # penalty for recently visited
         if frontier in robot_info.exploration_history[-5:]:
             utility -= 1.0
             
         return utility
         
     def assign_frontiers_to_explorers(self):
-        """
-        assign frontiers to explorer robots using utility calculation.
-        this would use a trained RL policy in final 
-        """
+        # assign frontiers to explorers
         if not self.current_frontiers:
             return
             
         explorers = [r for r in self.robots.values() if r.type == "explorer"]
         available_frontiers = self.current_frontiers.copy()
         
-        # assignment plan
         assignments = {}
         
         for robot in explorers:
@@ -196,7 +241,7 @@ class MultiRobotController:
             if not robot_pose:
                 continue
                 
-            # best frontier for this robot
+            # find best frontier
             best_frontier = None
             best_utility = float('-inf')
             
@@ -213,7 +258,7 @@ class MultiRobotController:
                 robot.state = RobotState.MOVING_TO_FRONTIER
                 robot.target_pose = best_frontier
                 
-        # publish exploration plan
+        # publish plan
         if assignments:
             plan = ExplorationPlan()
             plan.header.stamp = rospy.Time.now()
@@ -228,26 +273,8 @@ class MultiRobotController:
             plan.reasoning = f"Assigned {len(assignments)} frontiers using utility-based allocation"
             self.plan_pub.publish(plan)
             
-    def generate_rescue_path(self, start_pose, target):
-        """
-        generate path for rescue robot, in full implementation, 
-        this would call LLM-based path planner.
-        """
-        # for now, just create direct path with intermediate waypoints
-        waypoints = []
-        
-        # intermediate points
-        steps = 5
-        for i in range(steps + 1):
-            t = i / float(steps)
-            x = start_pose.position.x + t * (target[0] - start_pose.position.x)
-            y = start_pose.position.y + t * (target[1] - start_pose.position.y)
-            waypoints.append((x, y))
-            
-        return waypoints
-        
     def move_robot_towards_target(self, robot_info):
-        """move robot towards its target using teleportation"""
+        # move robot to target using teleportation
         current_pose = self.get_robot_pose(robot_info.id)
         if not current_pose or not robot_info.target_pose:
             return
@@ -263,23 +290,23 @@ class MultiRobotController:
             robot_info.target_pose = None
             rospy.loginfo("Robot %s reached target", robot_info.id)
         else:
-            # teleport towards target
+            # smooth teleport
             step = min(self.teleport_step_size, distance)
             new_x = current_pose.position.x + (dx / distance) * step
             new_y = current_pose.position.y + (dy / distance) * step
             yaw = math.atan2(dy, dx)
             
-            if self.teleport_robot(robot_info.id, new_x, new_y, yaw):
+            if self.smooth_teleport_robot(robot_info.id, new_x, new_y, yaw):
                 robot_info.current_pose = (new_x, new_y)
-                
+                    
     def control_loop(self, event):
-        """main control loop"""
+        # main loop
         with self.lock:
             if self.exploration_mode:
-                # exploration mode - assign frontiers to idle explorers
+                # exploration
                 self.assign_frontiers_to_explorers()
                 
-                # move exploring robots
+                # move explorers
                 for robot in self.robots.values():
                     if robot.type == "explorer" and robot.state == RobotState.MOVING_TO_FRONTIER:
                         self.move_robot_towards_target(robot)
@@ -290,7 +317,7 @@ class MultiRobotController:
                     rescuer = self.robots[self.rescuer_namespace]
                     
                     if self.rescue_target and rescuer.state == RobotState.IDLE:
-                        # generate rescue path
+                        # generate path
                         current_pose = self.get_robot_pose(rescuer.id)
                         if current_pose:
                             rescuer.path_waypoints = self.generate_rescue_path(current_pose, self.rescue_target)
@@ -298,27 +325,36 @@ class MultiRobotController:
                             rescuer.state = RobotState.RESCUING
                             
                     elif rescuer.state == RobotState.RESCUING and rescuer.path_waypoints:
-                        # follow rescue path
+                        # follow path
                         if rescuer.current_waypoint_idx < len(rescuer.path_waypoints):
                             rescuer.target_pose = rescuer.path_waypoints[rescuer.current_waypoint_idx]
                             self.move_robot_towards_target(rescuer)
                             
-                            # check if reached current waypoint
+                            # check if reached waypoint
                             if rescuer.state == RobotState.IDLE:
                                 rescuer.current_waypoint_idx += 1
                                 rescuer.state = RobotState.RESCUING
                         else:
-                            # completed rescue path
+                            # done with path
                             rescuer.state = RobotState.RETURNING
                             rospy.loginfo("Rescue robot reached target, returning...")
-                else:
-                    rospy.logwarn_throttle(10.0, "Rescue mode active but no rescuer robot configured")
-                        
-        # publish status updates
+                            
+        # publish status
         self.publish_status_updates()
         
+    def generate_rescue_path(self, start_pose, target):
+        # path for rescue
+        waypoints = []
+        steps = 5
+        for i in range(steps + 1):
+            t = i / float(steps)
+            x = start_pose.position.x + t * (target[0] - start_pose.position.x)
+            y = start_pose.position.y + t * (target[1] - start_pose.position.y)
+            waypoints.append((x, y))
+        return waypoints
+        
     def publish_status_updates(self):
-        """execution status for all robots"""
+        # status for all robots
         for robot_id, robot in self.robots.items():
             status = ExecutionStatus()
             status.header.stamp = rospy.Time.now()
