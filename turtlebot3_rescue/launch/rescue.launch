@@ -1,0 +1,15 @@
+<launch>
+    <!-- Gazebo Simulation for Rescue Bot -->
+    <group ns="rescue">
+        <include file="$(find turtlebot3_gazebo)/launch/turtlebot3_empty_world.launch">
+            <arg name="model" value="burger"/>
+
+        </include>
+        <!-- <node name="rescue_planner" pkg="turtlebot3_rescue" type="rescue_planner"/> -->
+
+    </group>
+
+    <!-- Map Server -->
+        <!-- LLM Service -->
+    <!-- <node name="llm_service" pkg="turtlebot3_rescue" type="llm_service.py"/> -->
+</launch>
