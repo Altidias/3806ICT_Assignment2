@@ -1,0 +1,4 @@
+Header header
+geometry_msgs/Pose robot_pose
+sensor_msgs/LaserScan scan
+nav_msgs/OccupancyGrid map_data

@@ -1,0 +1,57 @@
+<launch>
+    <arg name="robot_name" default="rescue_robot"/>
+    <arg name="model" default="waffle"/> <!-- waffle is bigger for rescue -->
+    <arg name="x_pos" default="0.0"/>
+    <arg name="y_pos" default="0.0"/>
+    <arg name="z_pos" default="0.0"/>
+    
+    <group ns="$(arg robot_name)">
+        <!-- robot description -->
+        <param name="robot_description"
+               command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+        
+        <!-- spawn robot -->
+        <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model"
+              args="-urdf -model turtlebot3_$(arg robot_name)
+                    -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos)
+                    -param robot_description"
+              launch-prefix="bash -c 'sleep 2; $0 $@'" />
+        
+        <!-- robot state publisher -->
+        <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+            <param name="publish_frequency" value="10.0"/>
+            <param name="tf_prefix" value="$(arg robot_name)"/>
+        </node>
+        
+        <!-- static tf publishers -->
+        <node pkg="tf2_ros" type="static_transform_publisher" name="base_footprint_to_base_link"
+              args="0 0 0.010 0 0 0 $(arg robot_name)/base_footprint $(arg robot_name)/base_link" />
+        
+        <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_laser"
+              args="-0.064 0 0.122 0 0 0 $(arg robot_name)/base_link $(arg robot_name)/base_scan" />
+        
+        <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_caster"
+              args="-0.064 0 -0.007 0 0 0 $(arg robot_name)/base_link $(arg robot_name)/caster_back_link" />
+        
+        <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu"
+              args="-0.032 0 0.068 0 0 0 $(arg robot_name)/base_link $(arg robot_name)/imu_link" />
+        
+        <!-- rescue robot uses merged map, no slam needed -->
+        <!-- tf to global map -->
+        <node pkg="tf2_ros" type="static_transform_publisher" name="map_to_odom"
+              args="0 0 0 0 0 0 map $(arg robot_name)/odom"/>
+    </group>
+    
+    <!-- path follower for rescue -->
+    <node name="path_follower_$(arg robot_name)" pkg="turtlebot3_explorer" type="path_follower"
+          output="screen">
+        <param name="robot_name" value="$(arg robot_name)"/>
+        <param name="position_tolerance" value="0.3"/>
+        <param name="linear_speed" value="0.4"/>
+        <param name="angular_speed" value="1.0"/>
+        <param name="goal_tolerance" value="0.3"/>
+        <param name="lookahead_points" value="0"/>
+        <param name="critical_distance" value="0.5"/>
+        <param name="slow_distance" value="0.8"/>
+    </node>
+</launch>

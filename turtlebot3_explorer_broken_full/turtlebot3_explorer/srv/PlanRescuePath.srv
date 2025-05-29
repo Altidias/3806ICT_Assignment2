@@ -1,0 +1,20 @@
+# request - start position and survivor locations
+float64 start_x
+float64 start_y
+float64[] survivor_x
+float64[] survivor_y
+
+# map info for planning
+int32[] map_data
+uint32 map_width
+uint32 map_height
+float64 map_resolution
+float64 map_origin_x
+float64 map_origin_y
+
+---
+# response - full path visiting all survivors
+float64[] path_x
+float64[] path_y
+int32[] visit_order  # order in which survivors are visited
+bool success

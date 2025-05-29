@@ -1,0 +1,8 @@
+# Request
+string robot_id           # ID of the robot requesting path costs
+int32[] path_x           # X coordinates of path points (in map coordinates)
+int32[] path_y           # Y coordinates of path points (in map coordinates)
+---
+# Response
+float64[] costs          # Heuristic cost for each waypoint
+bool success             # Whether cost calculation was successful

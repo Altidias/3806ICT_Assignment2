@@ -1,0 +1,6 @@
+Header header
+geometry_msgs/Pose robot_pose
+float32 exploration_percentage
+int32 battery_level
+bool is_exploring
+bool has_goal

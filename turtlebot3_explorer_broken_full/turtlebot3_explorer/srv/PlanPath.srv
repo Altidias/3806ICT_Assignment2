@@ -1,0 +1,17 @@
+# Request
+int32[] map_data    
+uint32 map_width     
+uint32 map_height        
+int32 start_x      
+int32 start_y        
+int32 goal_x          
+int32 goal_y         
+string robot_id      
+bool use_heuristics     
+float64[] heuristic_costs 
+
+---
+# Response
+int32[] path_x            
+int32[] path_y            
+bool success     
