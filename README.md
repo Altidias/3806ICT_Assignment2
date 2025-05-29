@@ -2,7 +2,7 @@
 Mineshaft Exploration and Retrieval ROS
 
 ### Group Members
-Yannik Zwolsman (s5247589), Daniel Poulis (s), Jacob Barany (s), Tiam Lamb (s)
+Yannik Zwolsman (s5247589), Daniel Poulis (s), Jacob Barany (s), Tiam Lamb (s5259308)
 
 ### Build Instructions
 - Copy /turtlebot3_explorer into ~/catkin_ws/src
