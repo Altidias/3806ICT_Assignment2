@@ -1,0 +1,3 @@
+geometry_msgs/PoseArray targets
+---
+geometry_msgs/PoseArray optimized_targets

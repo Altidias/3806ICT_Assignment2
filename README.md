@@ -1,5 +1,5 @@
 # 3806ICT_Assignment2 - Mineshaft Surveyor
-A framework for multi-robot exploration and rescue based on ROS Noetic and Gazebo that incorporates a stubbed LLM-based rescue planner, map merging, frontier exploration, and classical SLAM.
+A framework for multi-robot exploration and rescue based on ROS Noetic and Gazebo that incorporates an LLM-based rescue planner, map merging, frontier exploration, and classical SLAM.
 
 ### Group Members
 Yannik Zwolsman (s5247589), Daniel Poulis (s5263785), Jacob Barany (s5278113), Tiam Lamb (s5259308)
@@ -8,14 +8,8 @@ Yannik Zwolsman (s5247589), Daniel Poulis (s5263785), Jacob Barany (s5278113), T
 
 ## Overview
 
-This package coordinates two TurtleBot3 robots to:
+This package coordinates multiple robots to simulatenously explore and map the world using slam gmapping to discover survivors, then coordinates a rescue robot to traverse an optimal path to collect survivors.
 
-1. **Simultaneously explore** an unknown Gazebo world using `gmapping` SLAM.
-2. **Merge their local maps** into a single global occupancy grid.
-3. **Detect frontier regions** (free/unknown boundaries) and cluster them.
-4. **Assign frontier goals** via a centralized greedy utility allocator (RL upgrade planned).
-5. **Teleport** robots step-by-step in Gazebo to validate exploration rapidly.
-6. **Switch to rescue mode**, invoke a stubbed 4-stage LLM planner (`/get_plan`), and eventually A⋆.
 
 ---
 
@@ -43,25 +37,9 @@ This package coordinates two TurtleBot3 robots to:
 ---
 
 ### Run Instructions
-- roslaunch turtlebot3_explorer master.launch
+- Launch main script (runs every node needed to coordinate the search and rescue): roslaunch turtlebot3_explorer master.launch
+- Launch visualisation: roslaunch turtlebot3_explorer viz.launch
 - To get rid of warning spam: roslaunch turtlebot3_explorer master.launch 2>&1 | grep -v "TF_REPEATED_DATA" | grep -v "buffer_core.cpp"
 
-### Key Nodes and Topics
-| Node                          | Subscribes                            | Publishes                         |
-| ----------------------------- | ------------------------------------- | --------------------------------- |
-| **sensor\_interface**         | `/scan`, `/imu`, TF                   | `/sensor_data`                    |
-| **map\_merger**               | `/robot1/map`, `/robot2/map`          | `/map`                            |
-| **frontier\_detector**        | `/map`                                | `/frontiers`, `/frontier_markers` |
-| **frontier\_planner**         | `/frontiers`, `/robotX/odom`          | `/exploration_plan`               |
-| **multi\_robot\_controller**  | `/exploration_plan`, `/control_mode`  | `/cmd_vel`, `/execution_status`   |
-| **plan\_executor**            | `/get_plan` (service), `/robot_state` | `/cmd_vel`                        |
-| **initialize\_slam** (helper) | `/robotX/map`                         | `/robotX/cmd_vel`                 |
 
-### Recording & Playback
-- Record: `rosbag record -a -O run.bag`
-- Playback: `rosbag play run.bag --clock`
 
-### Future Work
-- Replace greedy allocator with Reinforcement Learning
-- Integrate LLM + A⋆ fully behind `/get_plan`
-- Add priority‐based collision avoidance

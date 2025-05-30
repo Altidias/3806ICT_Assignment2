@@ -6,8 +6,10 @@ Panels:
       Expanded:
         - /Global Options1
         - /TF1
-        - /Robot1 Group1
-        - /Robot2 Group1
+        - /Exploration Robots1
+        - /Heuristic Visualizations1
+        - /Performance Metrics1
+        - /Rescue Operations1
       Splitter Ratio: 0.5
     Tree Height: 549
   - Class: rviz/Selection
@@ -36,7 +38,8 @@ Toolbars:
 Visualization Manager:
   Class: ""
   Displays:
-    - Alpha: 0.5
+    # === BASIC SETUP ===
+    - Alpha: 0.3
       Cell Size: 1
       Class: rviz/Grid
       Color: 160; 160; 164
@@ -54,6 +57,8 @@ Visualization Manager:
       Plane Cell Count: 50
       Reference Frame: map
       Value: true
+    
+    # === TF FRAMES ===
     - Class: rviz/TF
       Enabled: true
       Frame Timeout: 15
@@ -61,92 +66,37 @@ Visualization Manager:
         All Enabled: false
         map:
           Value: true
-        robot1/base_footprint:
-          Value: true
         robot1/base_link:
-          Value: true
-        robot1/base_scan:
-          Value: true
-        robot1/caster_back_link:
-          Value: true
-        robot1/imu_link:
-          Value: true
-        robot1/map:
-          Value: true
-        robot1/odom:
-          Value: true
-        robot1/wheel_left_link:
-          Value: true
-        robot1/wheel_right_link:
-          Value: true
-        robot2/base_footprint:
           Value: true
         robot2/base_link:
           Value: true
-        robot2/base_scan:
+        rescue_robot/base_link:
           Value: true
-        robot2/caster_back_link:
-          Value: true
-        robot2/imu_link:
-          Value: true
-        robot2/map:
-          Value: true
-        robot2/odom:
-          Value: true
-        robot2/wheel_left_link:
-          Value: true
-        robot2/wheel_right_link:
-          Value: true
-      Marker Alpha: 1
-      Marker Scale: 1
+      Marker Alpha: 0.8
+      Marker Scale: 0.5
       Name: TF
-      Show Arrows: true
+      Show Arrows: false
       Show Axes: true
-      Show Names: true
-      Tree:
-        map:
-          robot1/map:
-            robot1/odom:
-              robot1/base_footprint:
-                robot1/base_link:
-                  robot1/base_scan:
-                    {}
-                  robot1/caster_back_link:
-                    {}
-                  robot1/imu_link:
-                    {}
-                  robot1/wheel_left_link:
-                    {}
-                  robot1/wheel_right_link:
-                    {}
-          robot2/map:
-            robot2/odom:
-              robot2/base_footprint:
-                robot2/base_link:
-                  robot2/base_scan:
-                    {}
-                  robot2/caster_back_link:
-                    {}
-                  robot2/imu_link:
-                    {}
-                  robot2/wheel_left_link:
-                    {}
-                  robot2/wheel_right_link:
-                    {}
+      Show Names: false
       Update Interval: 0
       Value: true
-    - Alpha: 0.699999988079071
+    
+    # === MAPS AND EXPLORATION ===
+    - Alpha: 0.7
       Class: rviz/Map
       Color Scheme: map
-      Draw Behind: false
+      Draw Behind: true
       Enabled: true
       Name: Merged Map
       Topic: /map
       Unreliable: false
       Use Timestamp: false
       Value: true
+    
+    # === EXPLORATION ROBOTS GROUP ===
     - Class: rviz/Group
       Displays:
+        # Robot 1
         - Alpha: 1
           Class: rviz/RobotModel
           Collision Enabled: false
@@ -156,46 +106,13 @@ Visualization Manager:
             Expand Joint Details: false
             Expand Link Details: false
             Expand Tree: false
-            Link Tree Style: Links in Alphabetic Order
-            base_footprint:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            base_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            base_scan:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            caster_back_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            imu_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            wheel_left_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            wheel_right_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-          Name: RobotModel
+          Name: Robot1 Model
           Robot Description: robot1/robot_description
           TF Prefix: robot1
           Update Interval: 0
           Value: true
           Visual Enabled: true
+        
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
@@ -209,37 +126,28 @@ Visualization Manager:
           Color Transformer: FlatColor
           Decay Time: 0
           Enabled: true
-          Invert Rainbow: false
-          Max Color: 255; 255; 255
-          Max Intensity: 0
-          Min Color: 0; 0; 0
-          Min Intensity: 0
           Name: Robot1 LaserScan
-          Position Transformer: XYZ
-          Queue Size: 10
-          Selectable: true
-          Size (Pixels): 3
-          Size (m): 0.05000000074505806
+          Queue Size: 5
+          Size (m): 0.05
           Style: Flat Squares
           Topic: /robot1/scan
-          Unreliable: false
-          Use Fixed Frame: true
-          Use rainbow: true
           Value: true
-        - Alpha: 0.5
-          Class: rviz/Map
-          Color Scheme: costmap
-          Draw Behind: false
-          Enabled: false
-          Name: Robot1 Local Map
-          Topic: /robot1/map
-          Unreliable: false
-          Use Timestamp: false
-          Value: false
-      Enabled: true
-      Name: Robot1 Group
-    - Class: rviz/Group
-      Displays:
+        
+        - Alpha: 1
+          Buffer Length: 1
+          Class: rviz/Path
+          Color: 255; 0; 0
+          Enabled: true
+          Head Diameter: 0.3
+          Head Length: 0.2
+          Length: 0.3
+          Line Style: Lines
+          Line Width: 0.05
+          Name: Robot1 Path
+          Topic: /robot1/planned_path
+          Value: true
+        
+        # Robot 2
         - Alpha: 1
           Class: rviz/RobotModel
           Collision Enabled: false
@@ -249,46 +157,13 @@ Visualization Manager:
             Expand Joint Details: false
             Expand Link Details: false
             Expand Tree: false
-            Link Tree Style: Links in Alphabetic Order
-            base_footprint:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            base_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            base_scan:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            caster_back_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            imu_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            wheel_left_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            wheel_right_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-          Name: RobotModel
+          Name: Robot2 Model
           Robot Description: robot2/robot_description
           TF Prefix: robot2
           Update Interval: 0
           Value: true
           Visual Enabled: true
+        
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
@@ -302,61 +177,260 @@ Visualization Manager:
           Color Transformer: FlatColor
           Decay Time: 0
           Enabled: true
-          Invert Rainbow: false
-          Max Color: 255; 255; 255
-          Max Intensity: 0
-          Min Color: 0; 0; 0
-          Min Intensity: 0
           Name: Robot2 LaserScan
-          Position Transformer: XYZ
-          Queue Size: 10
-          Selectable: true
-          Size (Pixels): 3
-          Size (m): 0.05000000074505806
+          Queue Size: 5
+          Size (m): 0.05
           Style: Flat Squares
           Topic: /robot2/scan
-          Unreliable: false
-          Use Fixed Frame: true
-          Use rainbow: true
           Value: true
-        - Alpha: 0.5
+        
+        - Alpha: 1
+          Buffer Length: 1
+          Class: rviz/Path
+          Color: 0; 255; 0
+          Enabled: true
+          Head Diameter: 0.3
+          Head Length: 0.2
+          Length: 0.3
+          Line Style: Lines
+          Line Width: 0.05
+          Name: Robot2 Path
+          Topic: /robot2/planned_path
+          Value: true
+        
+        # Frontier visualization
+        - Alpha: 1
+          Arrow Length: 0.5
+          Axes Length: 0.3
+          Axes Radius: 0.01
+          Class: rviz/PoseArray
+          Color: 255; 165; 0
+          Enabled: true
+          Head Length: 0.1
+          Head Radius: 0.15
+          Name: Frontier Points
+          Queue Size: 10
+          Shaft Length: 0.4
+          Shaft Radius: 0.05
+          Shape: Arrow (Flat)
+          Topic: /frontiers
+          Value: true
+        
+        # Assignment visualization
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /frontier_assignments
+          Name: Frontier Assignments
+          Namespaces:
+            assignments: true
+          Queue Size: 100
+          Value: true
+      
+      Enabled: true
+      Name: Exploration Robots
+    
+    # === HEURISTIC VISUALIZATIONS GROUP ===
+    - Class: rviz/Group
+      Displays:
+        # Heat map
+        - Alpha: 0.6
           Class: rviz/Map
           Color Scheme: costmap
           Draw Behind: false
           Enabled: false
-          Name: Robot2 Local Map
-          Topic: /robot2/map
+          Name: Heat Map
+          Topic: /heuristic_heatmap
           Unreliable: false
           Use Timestamp: false
           Value: false
+        
+        # Overlap map
+        - Alpha: 0.6
+          Class: rviz/Map
+          Color Scheme: costmap
+          Draw Behind: false
+          Enabled: false
+          Name: Overlap Map
+          Topic: /overlap_heatmap
+          Unreliable: false
+          Use Timestamp: false
+          Value: false
+        
+        # Frontier attraction map
+        - Alpha: 0.6
+          Class: rviz/Map
+          Color Scheme: costmap
+          Draw Behind: false
+          Enabled: false
+          Name: Frontier Attraction Map
+          Topic: /frontier_attraction_map
+          Unreliable: false
+          Use Timestamp: false
+          Value: false
+        
+        # Combined heuristic map
+        - Alpha: 0.7
+          Class: rviz/Map
+          Color Scheme: costmap
+          Draw Behind: false
+          Enabled: true
+          Name: Combined Heuristic Map
+          Topic: /combined_heuristic_map
+          Unreliable: false
+          Use Timestamp: false
+          Value: true
+        
+        # 3D heat visualization
+        - Class: rviz/MarkerArray
+          Enabled: false
+          Marker Topic: /heat_markers
+          Name: 3D Heat Visualization
+          Namespaces:
+            heat_3d: true
+          Queue Size: 100
+          Value: false
+        
+        # 3D overlap visualization
+        - Class: rviz/MarkerArray
+          Enabled: false
+          Marker Topic: /overlap_markers
+          Name: 3D Overlap Visualization
+          Namespaces:
+            overlap_3d: true
+          Queue Size: 100
+          Value: false
+      
       Enabled: true
-      Name: Robot2 Group
-    - Alpha: 1
-      Arrow Length: 0.30000001192092896
-      Axes Length: 0.30000001192092896
-      Axes Radius: 0.009999999776482582
-      Class: rviz/PoseArray
-      Color: 255; 25; 0
-      Enabled: false
-      Head Length: 0.07000000029802322
-      Head Radius: 0.10000000149011612
-      Name: Frontier Points
-      Queue Size: 10
-      Shaft Length: 0.23000000417232513
-      Shaft Radius: 0.05000000074505806
-      Shape: Arrow (Flat)
-      Topic: /frontier_points
-      Unreliable: false
-      Value: false
-    - Class: rviz/MarkerArray
+      Name: Heuristic Visualizations
+    
+    # === PERFORMANCE METRICS GROUP ===
+    - Class: rviz/Group
+      Displays:
+        # Robot trail visualization
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /coverage_visualization
+          Name: Robot Trails
+          Namespaces:
+            robot_trails: true
+          Queue Size: 100
+          Value: true
+        
+        # Efficiency visualization
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /efficiency_visualization
+          Name: Separation Circles
+          Namespaces:
+            separation_circles: true
+          Queue Size: 100
+          Value: true
+        
+        # Performance text display
+        - Alpha: 1
+          Autocompute Intensity Bounds: true
+          Autocompute Value Bounds:
+            Max Value: 10
+            Min Value: -10
+            Value: true
+          Axis: Z
+          Channel Name: intensity
+          Class: rviz/Range
+          Color: 255; 255; 0
+          Enabled: false
+          Name: Performance Metrics
+          Queue Size: 100
+          Value: false
+      
       Enabled: true
-      Marker Topic: /frontier_markers
-      Name: MarkerArray
-      Namespaces:
-        frontier_centroids: true
-        frontier_points: true
-      Queue Size: 100
+      Name: Performance Metrics
+    
+    # === RESCUE OPERATIONS GROUP ===
+    - Class: rviz/Group
+      Displays:
+        # Survivors
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /survivor_markers
+          Name: Survivors
+          Namespaces:
+            survivors: true
+          Queue Size: 100
+          Value: true
+        
+        # Rescue robot
+        - Alpha: 1
+          Class: rviz/RobotModel
+          Collision Enabled: false
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+          Name: Rescue Robot Model
+          Robot Description: rescue_robot/robot_description
+          TF Prefix: rescue_robot
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+        
+        # Rescue path
+        - Alpha: 1
+          Buffer Length: 1
+          Class: rviz/Path
+          Color: 255; 0; 255
+          Enabled: true
+          Head Diameter: 0.3
+          Head Length: 0.2
+          Length: 0.3
+          Line Style: Lines
+          Line Width: 0.08
+          Name: Rescue Path
+          Topic: /rescue_robot/planned_path
+          Value: true
+        
+        # Rescue target marker
+        - Class: rviz/Marker
+          Enabled: true
+          Marker Topic: /rescue_robot_marker
+          Name: Rescue Target
+          Namespaces:
+            rescue_target: true
+          Queue Size: 100
+          Value: true
+      
+      Enabled: true
+      Name: Rescue Operations
+    
+    # === STATUS AND DEBUG ===
+    - Background Alpha: 0.8
+      Background Color: 25; 25; 25
+      Class: rviz/TextDisplay
+      Enabled: true
+      Font Size: 12
+      Name: Exploration Status
+      Topic: /exploration_status
       Value: true
+    
+    - Background Alpha: 0.8
+      Background Color: 25; 25; 25
+      Class: rviz/TextDisplay
+      Enabled: true
+      Font Size: 12
+      Name: Survivor Status
+      Topic: /survivor_status
+      Value: true
+    
+    - Background Alpha: 0.8
+      Background Color: 25; 25; 25
+      Class: rviz/TextDisplay
+      Enabled: true
+      Font Size: 12
+      Name: Rescue Status
+      Topic: /rescue_status
+      Value: true
+  
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -385,7 +459,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 15
+      Distance: 12.0
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -393,25 +467,61 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -2
-        Y: 0.5
-        Z: 0
+        X: 0.0
+        Y: 0.0
+        Z: 0.0
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.555397391319275
+      Pitch: 1.2
       Target Frame: <Fixed Frame>
-      Yaw: 0.020398404449224472
-    Saved: ~
+      Yaw: 0.0
+    Saved:
+      - Class: rviz/Orbit
+        Distance: 8.0
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Field of View: 0.7853981852531433
+        Focal Point:
+          X: 0.0
+          Y: 0.0
+          Z: 0.0
+        Name: Overview
+        Near Clip Distance: 0.009999999776482582
+        Pitch: 1.4
+        Target Frame: map
+        Yaw: 0.0
+      
+      - Class: rviz/Orbit
+        Distance: 15.0
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Field of View: 0.7853981852531433
+        Focal Point:
+          X: 0.0
+          Y: 0.0
+          Z: 0.0
+        Name: Wide View
+        Near Clip Distance: 0.009999999776482582
+        Pitch: 1.57
+        Target Frame: map
+        Yaw: 0.0
+
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 846
+  Height: 1000
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd000000040000000000000156000002b0fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d000002b0000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f000002b0fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000003d000002b0000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004f30000003efc0100000002fb0000000800540069006d00650100000000000004f3000002eb00fffffffb0000000800540069006d0065010000000000000450000000000000000000000282000002b000000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd000000040000000000000156000003e2fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d000003e2000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f000003e2fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000003d000003e2000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007800000003efc0100000002fb0000000800540069006d00650100000000000007800000030000fffffffb0000000800540069006d006501000000000000045000000000000000000000050f000003e200000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -420,6 +530,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 1267
-  X: 72
+  Width: 1920
+  X: 0
   Y: 27
