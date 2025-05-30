@@ -4,31 +4,6 @@ A framework for multi-robot exploration and rescue based on ROS Noetic and Gazeb
 ## Group Members
 Yannik Zwolsman (s5247589), Daniel Poulis (s), Jacob Barany (s), Tiam Lamb (s5259308)
 
-## Repository Structure
-3806ICT_Assignment2/
-├── launch/
-│ ├── explorer.launch
-│ └── master.launch
-├── rviz/
-│ └── config.rviz
-├── src/
-│ ├── cpp/
-│ │ ├── frontier_detector.cpp
-│ │ ├── frontier_planner.cpp
-│ │ └── sensor_interface.cpp
-│ ├── python/
-│ │ ├── map_merger.py
-│ │ ├── multi_robot_controller.py
-│ │ └── initialize_slam.py
-│ └── msg/
-│ ├── AgentState.msg
-│ ├── ExecutionStatus.msg
-│ ├── ExplorationPlan.msg
-│ └── SensorData.msg
-├── CMakeLists.txt
-├── package.xml
-└── README.md
-
 ## Overview
 
 This package coordinates two TurtleBot3 robots to:
