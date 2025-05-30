@@ -2,7 +2,7 @@
 A framework for multi-robot exploration and rescue based on ROS Noetic and Gazebo that incorporates a stubbed LLM-based rescue planner, map merging, frontier exploration, and classical SLAM.
 
 ### Group Members
-Yannik Zwolsman (s5247589), Daniel Poulis (s5263785), Jacob Barany (s), Tiam Lamb (s5259308)
+Yannik Zwolsman (s5247589), Daniel Poulis (s5263785), Jacob Barany (s5278113), Tiam Lamb (s5259308)
 
 ---
 
