@@ -1,8 +1,10 @@
 # 3806ICT_Assignment2 - Mineshaft Surveyor
 A framework for multi-robot exploration and rescue based on ROS Noetic and Gazebo that incorporates a stubbed LLM-based rescue planner, map merging, frontier exploration, and classical SLAM.
 
-## Group Members
+# Group Members
 Yannik Zwolsman (s5247589), Daniel Poulis (s), Jacob Barany (s), Tiam Lamb (s5259308)
+
+---
 
 ## Overview
 
@@ -26,6 +28,8 @@ This package coordinates two TurtleBot3 robots to:
 5. **Gazebo:** Installed via ROS Noetic desktop–full
 6. **Python Dependencies:** `sudo apt install python3-rospkg python3-catkin-pkg python3-numpy`
 
+---
+
 ## Build Instructions
 1. Clone the repository into your catkin workspace:
    `cd ~/catkin_ws/src`
@@ -36,7 +40,9 @@ This package coordinates two TurtleBot3 robots to:
 3. Source the workspace:
    `source devel/setup.bash`
 
-## Runn Instructions
+---
+
+## Run Instructions
 - roslaunch turtlebot3_explorer master.launch
 - To get rid of warning spam: roslaunch turtlebot3_explorer master.launch 2>&1 | grep -v "TF_REPEATED_DATA" | grep -v "buffer_core.cpp"
 
