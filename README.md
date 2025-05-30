@@ -1,7 +1,7 @@
 # 3806ICT_Assignment2 - Mineshaft Surveyor
 A framework for multi-robot exploration and rescue based on ROS Noetic and Gazebo that incorporates a stubbed LLM-based rescue planner, map merging, frontier exploration, and classical SLAM.
 
-# Group Members
+### Group Members
 Yannik Zwolsman (s5247589), Daniel Poulis (s), Jacob Barany (s), Tiam Lamb (s5259308)
 
 ---
@@ -19,7 +19,7 @@ This package coordinates two TurtleBot3 robots to:
 
 ---
 
-## Prerequisites
+### Prerequisites
 
 1. **Operating System:** Ubuntu 20.04  
 2. **ROS Distribution:** Noetic  
@@ -30,7 +30,7 @@ This package coordinates two TurtleBot3 robots to:
 
 ---
 
-## Build Instructions
+### Build Instructions
 1. Clone the repository into your catkin workspace:
    `cd ~/catkin_ws/src`
    `git clone -b jacob-working https://github.com/Altidias/3806ICT_Assignment2.git`
@@ -42,11 +42,11 @@ This package coordinates two TurtleBot3 robots to:
 
 ---
 
-## Run Instructions
+### Run Instructions
 - roslaunch turtlebot3_explorer master.launch
 - To get rid of warning spam: roslaunch turtlebot3_explorer master.launch 2>&1 | grep -v "TF_REPEATED_DATA" | grep -v "buffer_core.cpp"
 
-## Key Nodes and Topics
+### Key Nodes and Topics
 | Node                          | Subscribes                            | Publishes                         |
 | ----------------------------- | ------------------------------------- | --------------------------------- |
 | **sensor\_interface**         | `/scan`, `/imu`, TF                   | `/sensor_data`                    |
@@ -57,11 +57,11 @@ This package coordinates two TurtleBot3 robots to:
 | **plan\_executor**            | `/get_plan` (service), `/robot_state` | `/cmd_vel`                        |
 | **initialize\_slam** (helper) | `/robotX/map`                         | `/robotX/cmd_vel`                 |
 
-## Recording & Playback
+### Recording & Playback
 - Record: `rosbag record -a -O run.bag`
 - Playback: `rosbag play run.bag --clock`
 
-## Future Work
+### Future Work
 - Replace greedy allocator with Reinforcement Learning
 - Integrate LLM + A⋆ fully behind `/get_plan`
 - Add priority‐based collision avoidance
