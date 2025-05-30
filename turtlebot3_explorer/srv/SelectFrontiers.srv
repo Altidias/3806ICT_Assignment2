@@ -1,0 +1,10 @@
+# Request
+string[] robot_ids                  # IDs of robots needing assignments
+geometry_msgs/PoseArray robot_poses # positions of robots
+geometry_msgs/PoseArray frontiers   # frontier positions
+int32[] assigned_indices           # idices of already assigned frontiers
+---
+# Response
+bool success
+int32[] frontier_indices           # index of assigned frontier for each robot (-1 if none)
+string[] reasoning                 # LLM's reasoning for each assignment

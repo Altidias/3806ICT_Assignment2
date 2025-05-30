@@ -1,0 +1,8 @@
+# get list of all survivors and their status
+bool only_discovered  # if true, only return discovered survivors
+---
+int32[] survivor_ids
+float64[] x_positions
+float64[] y_positions
+bool[] discovered
+bool all_found

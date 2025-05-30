@@ -1,0 +1,6 @@
+# request - path to follow
+float64[] path_x    # x coords in world frame
+float64[] path_y    # y coords in world frame
+---
+# response
+bool success        # whether path was accepted

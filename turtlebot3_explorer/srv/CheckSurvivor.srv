@@ -1,0 +1,7 @@
+# check if there's a survivor at given position
+float64 x
+float64 y
+---
+bool found
+int32 survivor_id
+bool already_discovered

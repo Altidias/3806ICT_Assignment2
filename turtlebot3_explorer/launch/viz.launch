@@ -1,0 +1,66 @@
+<launch>
+    <arg name="enable_heuristic_viz" default="true"/>
+    <arg name="enable_performance_tracking" default="true"/>
+    <arg name="enable_data_export" default="true"/>
+    <arg name="export_path" default="/tmp/exploration_data"/>
+    <arg name="visualization_rate" default="2.0"/>
+    <arg name="robot_names" default="[robot1, robot2]"/>
+    <arg name="use_rviz" default="true"/>
+    
+    <group if="$(arg enable_heuristic_viz)">
+        <node name="heuristic_visualizer" pkg="turtlebot3_explorer" type="heuristic_visualiser"
+              output="screen" launch-prefix="bash -c 'sleep 8; $0 $@'">
+            <rosparam param="robot_names" subst_value="true">$(arg robot_names)</rosparam>
+            <param name="visualization_rate" value="$(arg visualization_rate)"/>
+            <param name="heatmap_alpha" value="0.6"/>
+            <param name="export_data" value="$(arg enable_data_export)"/>
+            <param name="export_path" value="$(arg export_path)"/>
+        </node>
+    </group>
+    
+    <group if="$(arg enable_performance_tracking)">
+        <node name="performance_tracker" pkg="turtlebot3_explorer" type="performance_tracker.py"
+              output="screen" launch-prefix="bash -c 'sleep 10; $0 $@'">
+            <rosparam param="robot_names" subst_value="true">$(arg robot_names)</rosparam>
+            <param name="update_rate" value="$(arg visualization_rate)"/>
+            <param name="export_path" value="$(arg export_path)"/>
+            <param name="enable_live_plot" value="false"/>
+            <param name="metrics_window_size" value="100"/>
+        </node>
+    </group>
+    
+    <node name="heuristic_calculator" pkg="turtlebot3_explorer" type="heuristic_calculator"
+          output="screen" launch-prefix="bash -c 'sleep 6; $0 $@'">
+        <rosparam param="robot_names" subst_value="true">$(arg robot_names)</rosparam>
+        <param name="overlap_radius" value="1.0"/>
+        <param name="overlap_cost_factor" value="0.5"/>
+        <param name="path_decay_time" value="10.0"/>
+        <param name="frontier_attraction_radius" value="1.0"/>
+        <param name="frontier_cost_reduction" value="1.5"/>
+        
+        <param name="publish_heat_grid" value="true"/>
+        <param name="publish_overlap_grid" value="true"/>
+        <param name="grid_resolution" value="0.2"/>
+        <param name="visualization_update_rate" value="1.0"/>
+    </node>
+    
+
+    <node name="rviz" pkg="rviz" type="rviz" if="$(arg use_rviz)"
+          args="-d $(find turtlebot3_explorer)/rviz/config.rviz"
+          output="screen" launch-prefix="bash -c 'sleep 5; $0 $@'">
+        <remap from="/initialpose" to="/robot1/initialpose"/>
+        <remap from="/move_base_simple/goal" to="/robot1/goal"/>
+    </node>
+    
+    
+    
+    <group>
+        <param name="visualization_config/heuristic_viz_enabled" value="$(arg enable_heuristic_viz)"/>
+        <param name="visualization_config/performance_tracking_enabled" value="$(arg enable_performance_tracking)"/>
+        <param name="visualization_config/data_export_enabled" value="$(arg enable_data_export)"/>
+        <param name="visualization_config/export_path" value="$(arg export_path)"/>
+        <param name="visualization_config/visualization_rate" value="$(arg visualization_rate)"/>
+        <param name="visualization_config/rviz" value="$(arg use_rviz)"/>
+    </group>
+    
+</launch>
